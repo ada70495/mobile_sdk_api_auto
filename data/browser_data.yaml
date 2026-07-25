@@ -1,0 +1,19 @@
+# 浏览器新增收藏接口
+browser_collect:
+  uri: "/browser/collect"
+  method: "POST"
+  cases:
+    - case_name: "正常添加网页收藏"
+      json: {"url":"https://www.baidu.com","title":"百度"}
+      expect: {"code":200}
+    - case_name: "URL为空，参数非法"
+      json: {"url":"","title":"空链接"}
+      expect: {"code":400}
+# 浏览器缓存清理接口
+browser_cache:
+  uri: "/browser/cache/clear"
+  method: "POST"
+  cases:
+    - case_name: "一键清空全部缓存"
+      json: {"cache_type":"all"}
+      expect: {"code":200}

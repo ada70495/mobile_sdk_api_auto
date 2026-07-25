@@ -1,0 +1,36 @@
+# 相册文件夹创建接口
+create_folder:
+  uri: "/album/folder/create"
+  method: "POST"
+  cases:
+    - case_name: "正常创建相册文件夹"
+      json: {"name":"日常照片","sort":1}
+      expect: {"code":200}
+    - case_name: "文件夹名称为空-参数异常"
+      json: {"name":"","sort":1}
+      expect: {"code":400}
+    - case_name: "文件夹名称超长-参数超限"
+      json: {"name":"一二三四五六七八九十一二三四五六七八九十","sort":1}
+      expect: {"code":400}
+# 图片上传接口
+upload_image:
+  uri: "/album/upload"
+  method: "POST"
+  cases:
+    - case_name: "正常上传图片到指定相册"
+      json: {"folder_id":1001,"img_name":"test1.jpg"}
+      expect: {"code":200}
+    - case_name: "不存在相册ID-越权访问拦截"
+      json: {"folder_id":999999,"img_name":"test1.jpg"}
+      expect: {"code":403}
+# 图片删除接口
+delete_image:
+  uri: "/album/delete"
+  method: "DELETE"
+  cases:
+    - case_name: "正常删除图片"
+      json: {"img_id":2001}
+      expect: {"code":200}
+    - case_name: "重复删除已删图片-幂等校验"
+      json: {"img_id":9999}
+      expect: {"code":400}

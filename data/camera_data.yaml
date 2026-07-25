@@ -1,0 +1,22 @@
+# 相机分辨率、帧率配置接口
+camera_param_set:
+  uri: "/camera/param/set"
+  method: "POST"
+  cases:
+    - case_name: "正常设置1080P 30帧拍摄"
+      json: {"resolution":"1080P","fps":30}
+      expect: {"code":200}
+    - case_name: "传入非法分辨率，参数校验拦截"
+      json: {"resolution":"8K超级分辨率","fps":30}
+      expect: {"code":400}
+    - case_name: "fps数值超出合法区间，报错"
+      json: {"resolution":"720P","fps":999}
+      expect: {"code":400}
+# 水印配置接口
+watermark_config:
+  uri: "/camera/watermark"
+  method: "POST"
+  cases:
+    - case_name: "开启底部时间水印"
+      json: {"open":true,"position":"bottom"}
+      expect: {"code":200}
