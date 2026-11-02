@@ -1,0 +1,26 @@
+# ============================================
+# 企业级接口自动化测试 - 测试环境编排文件
+# 功能：一键启动 被测系统依赖环境
+#   1. WireMock：模拟下游"评论接口"（后端还没开发完成，先Mock）
+#   2. Redis：被测博客业务的缓存依赖（存储用户token）
+# 用法：
+#   启动全部环境: docker-compose up -d
+#   停止全部环境: docker-compose down
+# ============================================
+
+services:
+  # ---------- Mock服务：模拟下游评论接口 ----------
+  wiremock-mock:
+    image: wiremock/wiremock:latest      # 开源Mock服务镜像
+    container_name: blog-mock            # 容器名
+    ports:
+      - "8080:8080"                      # 宿主机8080 -> 容器8080
+    restart: unless-stopped
+
+  # ---------- Redis：被测业务的缓存依赖 ----------
+  redis:
+    image: redis:7-alpine                # 轻量Redis镜像
+    container_name: blog-redis           # 容器名
+    ports:
+      - "6379:6379"                      # 宿主机6379 -> 容器6379
+    restart: unless-stopped

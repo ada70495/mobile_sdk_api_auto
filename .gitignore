@@ -1,12 +1,16 @@
 # 本地私密配置文件
 config/env_local.yaml
-# 运行生成的日志和报告
+# 运行生成的日志和报告（动态产物，不入库）
 report/logs/
 report/allure_raw/
 report/allure_html/
-# Python编译缓存
+report/
+allure-result/
+allure-report/
+# Python编译缓存与虚拟环境
 __pycache__/
 *.pyc
+.venv/
 # 系统文件、编辑器配置
 .DS_Store
 .idea/
