@@ -4,18 +4,21 @@
 #   1. 被测接口：JSONPlaceholder 公开博客API（永久免费，无密钥限制）
 #   2. Mock接口：本地WireMock模拟的下游评论接口
 #   3. Redis依赖：读取被测业务缓存的用户token
-# 运行命令: pytest test_blog_api.py -v
+# 运行方式：
+#   本地运行:  pytest test_blog_api.py -v
+#   Jenkins容器内: 设置环境变量 REDIS_HOST=host.docker.internal 等后再执行
 # ============================================
 
+import os               # 读取环境变量，支持多环境切换
 import requests          # HTTP请求库
 import redis             # Redis操作库
 import pytest            # 测试框架
 
-# ---------- 测试环境地址配置 ----------
-BASE_URL = "https://jsonplaceholder.typicode.com"   # 被测博客API（免费公开）
-MOCK_URL = "http://127.0.0.1:8080"                  # 本地WireMock模拟评论接口
-REDIS_HOST = "127.0.0.1"                            # Redis容器地址
-REDIS_PORT = 6379                                   # Redis端口
+# ---------- 测试环境地址配置（优先读环境变量，便于Jenkins容器等场景切换） ----------
+BASE_URL = os.getenv("BASE_URL", "https://jsonplaceholder.typicode.com")  # 被测博客API
+MOCK_URL = os.getenv("MOCK_URL", "http://127.0.0.1:8080")                 # Mock评论接口
+REDIS_HOST = os.getenv("REDIS_HOST", "127.0.0.1")                         # Redis地址
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))                         # Redis端口
 
 # ---------- 连接Redis（Docker容器启动） ----------
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
