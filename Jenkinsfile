@@ -1,20 +1,20 @@
-# ============================================
-# 企业级接口自动化测试 - Jenkins 流水线脚本 (Jenkinsfile)
-# 适用场景：本地单机 Docker 化 CI（方案B：容器内本地 Git 仓库作为代码源）
-#
-# 前提：
-#   1. 宿主机 Docker Desktop 已运行 blog-mock(WireMock, 8080)、blog-redis(6379)
-#   2. Jenkins 容器内已安装 node/npm/newman、python3/pip
-#   3. 代码已同步到容器内 /src/blog_auto_test
-#   4. 注意：容器访问宿主机服务必须用 host.docker.internal（127.0.0.1 不通）
-#
-# 流水线五个阶段：
-#   1. 拉取代码         —— 从容器内 Git 仓库检出源码
-#   2. 准备测试环境     —— 注册 WireMock 规则 + 初始化 Redis 测试数据（关键：让流水线自愈）
-#   3. Newman 执行      —— 跑 Postman 集合，产出 HTML + JUnit 报告
-#   4. pytest 执行      —— 跑 Python 用例，产出 JUnit 报告
-#   5. 报告归集         —— Jenkins 解析 JUnit、发布 HTML
-# ============================================
+// ============================================
+// 企业级接口自动化测试 - Jenkins 流水线脚本 (Jenkinsfile)
+// 适用场景：本地单机 Docker 化 CI（方案B：容器内本地 Git 仓库作为代码源）
+//
+// 前提：
+//   1. 宿主机 Docker Desktop 已运行 blog-mock(WireMock, 8080)、blog-redis(6379)
+//   2. Jenkins 容器内已安装 node/npm/newman、python3/pip
+//   3. 代码已同步到容器内 /src/blog_auto_test
+//   4. 注意：容器访问宿主机服务必须用 host.docker.internal（127.0.0.1 不通）
+//
+// 流水线五个阶段：
+//   1. 拉取代码         —— 从容器内 Git 仓库检出源码
+//   2. 准备测试环境     —— 注册 WireMock 规则 + 初始化 Redis 测试数据（关键：让流水线自愈）
+//   3. Newman 执行      —— 跑 Postman 集合，产出 HTML + JUnit 报告
+//   4. pytest 执行      —— 跑 Python 用例，产出 JUnit 报告
+//   5. 报告归集         —— Jenkins 解析 JUnit、发布 HTML
+// ============================================
 
 pipeline {
     agent any
