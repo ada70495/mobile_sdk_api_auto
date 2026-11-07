@@ -45,8 +45,8 @@ pipeline {
                     export MOCK_URL=http://host.docker.internal:8080
                     # 安装Python依赖（首次较慢，之后秒装）
                     python3 -m pip install -q -r pytest_case/requirements.txt
-                    # 执行pytest接口用例
-                    python3 -m pytest pytest_case/test_blog_api.py -v
+                    # 执行pytest接口用例（-c 指定本项目配置，避免被仓库根目录其他项目的pytest.ini干扰）
+                    python3 -m pytest pytest_case/test_blog_api.py -v -c pytest_case/pytest.ini
                 '''
             }
         }
