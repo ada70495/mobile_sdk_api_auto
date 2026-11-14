@@ -18,7 +18,7 @@ def _setup():
         format="<green>{time:HH:mm:ss}</green> | <level>{level:8}</level> | {message}",
     )
     logger.add(
-        os.path.join(LOG_DIR, "sdk_api_{time:YYYYMMDD}.log"),
+        os.path.join(LOG_DIR, "album_api_{time:YYYYMMDD}.log"),
         level="INFO",
         rotation="10 MB",
         retention="7 days",
