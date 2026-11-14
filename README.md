@@ -1,6 +1,7 @@
 # mobile_sdk_api_auto
 
 移动端 SDK 后台接口的自动化测试工程，覆盖相册、相机、浏览器、DJ 音乐播放器四块业务。
+技术栈：Python 3.13 + requests + pytest + PyYAML + Allure + loguru，被测服务用 Flask 起在本地。
 
 被测服务是仓库里的一个 Flask 应用（`mock_server/app.py`），实现了 13 个业务接口，
 带参数校验、权限判断和服务端状态。测试代码直接请求这个服务，所以克隆仓库、装好依赖就能跑，
