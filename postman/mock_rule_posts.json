@@ -1,1 +1,0 @@
-{"request":{"method":"GET","url":"/posts/1"},"response":{"status":200,"headers":{"Content-Type":"application/json; charset=UTF-8"},"body":"{\"userId\":1,\"id\":1,\"title\":\"mock文章标题 sunt qui excepturi\",\"body\":\"mock文章正文内容\"}"}}

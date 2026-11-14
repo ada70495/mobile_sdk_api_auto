@@ -1,26 +1,53 @@
 # ============================================
-# 企业级接口自动化测试 - 测试环境编排文件
-# 功能：一键启动 被测系统依赖环境
-#   1. WireMock：模拟下游"评论接口"（后端还没开发完成，先Mock）
-#   2. Redis：被测博客业务的缓存依赖（存储用户token）
+# 接口自动化测试 - 环境编排
+#   1. mock-sdk：本书的本地被测服务（相册/相机/浏览器/DJ，13 个业务接口）
+#   2. api-test：执行 pytest 用例的容器
+#
 # 用法：
-#   启动全部环境: docker-compose up -d
-#   停止全部环境: docker-compose down
+#   一键跑全量：docker compose run --rm api-test
+#   只起服务：docker compose up -d mock-sdk
+#   停止清理：docker compose down
 # ============================================
 
 services:
-  # ---------- Mock服务：模拟下游评论接口 ----------
-  wiremock-mock:
-    image: wiremock/wiremock:latest      # 开源Mock服务镜像
-    container_name: blog-mock            # 容器名
+  # ---------- 本地被测服务 ----------
+  mock-sdk:
+    image: python:3.11-slim
+    container_name: mock-sdk-api
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: >
+      sh -c "pip install -q -i https://pypi.tuna.tsinghua.edu.cn/simple flask
+             && python mock_server/app.py"
+    environment:
+      PORT: "9000"
+      SIGN_CHECK: "false"
+      SIGN_KEY: "mock-sign-key-2026"
     ports:
-      - "8080:8080"                      # 宿主机8080 -> 容器8080
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:9000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
-  # ---------- Redis：被测业务的缓存依赖 ----------
-  redis:
-    image: redis:7-alpine                # 轻量Redis镜像
-    container_name: blog-redis           # 容器名
-    ports:
-      - "6379:6379"                      # 宿主机6379 -> 容器6379
-    restart: unless-stopped
+  # ---------- 用例执行 ----------
+  api-test:
+    image: python:3.11-slim
+    container_name: sdk-api-test
+    working_dir: /app
+    volumes:
+      - ./:/app
+    depends_on:
+      mock-sdk:
+        condition: service_healthy
+    environment:
+      ENV: "ci"
+      # 同一 compose 网络内直接用服务名访问，不用 host.docker.internal
+      BASE_URL: "http://mock-sdk:9000"
+    command: >
+      sh -c "pip install -q -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+             && python -m pytest -p no:cacheprovider"
+    profiles: ["test"]

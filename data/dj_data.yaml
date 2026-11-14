@@ -1,0 +1,97 @@
+# ============ DJ 音乐播放器模块 ============
+
+# 歌单查询接口
+dj_playlist:
+  uri: "/dj/playlist"
+  method: "GET"
+  cases:
+    - case_name: "查询歌单返回全部歌曲"
+      params: {}
+      expect:
+        code: 200
+        total: 4
+
+# 播放控制接口
+dj_play:
+  uri: "/dj/play"
+  method: "POST"
+  cases:
+    - case_name: "播放存在的歌曲"
+      json:
+        song_id: 2
+      expect:
+        code: 200
+        playing: true
+    - case_name: "播放不存在的歌曲，返回404"
+      json:
+        song_id: 999
+      expect:
+        code: 404
+        msg: "歌曲不存在"
+
+# 音量调节接口
+dj_volume:
+  uri: "/dj/volume"
+  method: "POST"
+  cases:
+    - case_name: "设置音量60"
+      json:
+        volume: 60
+      expect:
+        code: 200
+    - case_name: "设置音量0（边界值）"
+      json:
+        volume: 0
+      expect:
+        code: 200
+    - case_name: "音量101超出上限，参数校验拦截"
+      json:
+        volume: 101
+      expect:
+        code: 400
+        msg: "音量"
+    - case_name: "音量-1低于下限，参数校验拦截"
+      json:
+        volume: -1
+      expect:
+        code: 400
+        msg: "音量"
+
+# 均衡器模式接口
+dj_eq:
+  uri: "/dj/eq"
+  method: "POST"
+  cases:
+    - case_name: "切换摇滚均衡器"
+      json:
+        mode: "rock"
+      expect:
+        code: 200
+    - case_name: "均衡器模式非法，参数校验拦截"
+      json:
+        mode: "pop"
+      expect:
+        code: 400
+        msg: "均衡器"
+
+# 播放模式接口
+dj_play_mode:
+  uri: "/dj/play_mode"
+  method: "POST"
+  cases:
+    - case_name: "切换列表循环播放"
+      json:
+        mode: "loop"
+      expect:
+        code: 200
+    - case_name: "切换随机播放"
+      json:
+        mode: "random"
+      expect:
+        code: 200
+    - case_name: "播放模式非法，参数校验拦截"
+      json:
+        mode: "shuffle"
+      expect:
+        code: 400
+        msg: "播放模式"

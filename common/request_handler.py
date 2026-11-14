@@ -1,63 +1,99 @@
-import requests
+"""请求封装：Session 复用 + MD5 签名 + token 自动携带 + 失效重试 + 全量日志"""
 import hashlib
+
+import requests
+from requests import Response
+
+from common.conf_handler import config
 from common.logger_handler import logger
-from common.conf_handler import *
 
-class RequestBase:
-    def __init__(self):
-        # session保持会话，自动携带cookie，复用连接
+
+class RequestHandler:
+    def __init__(self, base_url: str = None, timeout: int = None, sign_key: str = None):
+        self.base_url = (base_url or config.base_url).rstrip("/")
+        self.timeout = timeout or config.timeout
+        self.sign_key = sign_key or config.sign_key
         self.session = requests.Session()
-        # 全局token，从配置读取
-        self.token = env_data["token"]
-        # 签名密钥
-        self.sign_key = env_data["sign_key"]
+        self.token = ""
 
-    def get_sign(self, params):
-        """
-        生成接口MD5签名，适配后端验签规则
-        规则：参数字典value排序拼接 + 密钥 做md5
-        """
-        sign_str = "".join(sorted([str(v) for v in params.values()])) + self.sign_key
-        return hashlib.md5(sign_str.encode()).hexdigest()
+    def make_sign(self, method: str, path: str, payload: dict = None) -> str:
+        """签名算法（与服务端一致）：方法 + 路径 + 按键排序的入参 + 密钥，做 MD5"""
+        parts = [method.upper(), path]
+        if isinstance(payload, dict):
+            for key in sorted(payload):
+                parts.append(f"{key}={payload[key]}")
+        raw = "&".join(parts) + "&key=" + self.sign_key
+        return hashlib.md5(raw.encode("utf-8")).hexdigest()
 
-    def get_new_token(self):
-        """登录接口，重新获取token，写入yaml配置全局生效"""
-        login_url = f"{BASE_URL}/user/login"
-        payload = env_data["user"]
-        res = self.session.post(login_url, json=payload).json()
-        new_token = res["data"]["token"]
-        # 更新内存+配置文件
-        env_data["token"] = new_token
-        write_yaml(CONFIG_PATH, env_data)
-        self.token = new_token
-        logger.info("Token刷新成功，已更新到配置文件")
+    def login(self, username: str = None, password: str = None) -> dict:
+        """登录并把 token 写进实例，后续请求自动携带"""
+        username = username or config.username
+        password = password or config.password
+        resp = self.send(
+            "POST", "/user/login", json={"username": username, "password": password}, _auth=False
+        )
+        data = resp.json()
+        if data.get("code") == 200:
+            self.token = data["data"]["token"]
+            logger.info(f"登录成功 user={username} token={self.token}")
+        else:
+            logger.error(f"登录失败 code={data.get('code')} msg={data.get('msg')}")
+        return data
 
-    def send(self, method, uri, json=None, params=None):
-        """统一请求入口，所有接口调用此方法"""
-        url = BASE_URL + uri
-        # 请求头携带鉴权token
-        headers = {"Authorization": f"Bearer {self.token}"}
-        # GET参数需要加签名
-        if params:
-            params["sign"] = self.get_sign(params)
+    def _headers(self, method: str, path: str, payload: dict) -> dict:
+        headers = {
+            "Content-Type": "application/json",
+            "X-Sign": self.make_sign(method, path, payload),
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        return headers
 
-        try:
-            # 发起请求
-            response = self.session.request(method, url, headers=headers, json=json, params=params, timeout=10)
-            res = response.json()
-            # 捕获token过期（code=401），自动刷新重试一次
-            if res.get("code") == 401:
-                logger.warning("检测到Token失效，执行自动刷新并重试接口")
-                self.get_new_token()
-                headers["Authorization"] = f"Bearer {self.token}"
-                response = self.session.request(method, url, headers=headers, json=json, params=params, timeout=10)
-                res = response.json()
-            # 打印完整请求响应日志
-            logger.info(f"【请求】{url} 参数:{json} 响应:{res}")
-            return res
-        except Exception as e:
-            logger.error(f"接口请求异常：{e}")
-            raise
+    def send(self, method: str, path: str, json=None, params=None, _auth: bool = True, **kwargs) -> Response:
+        """统一请求入口"""
+        url = self.base_url + path
+        payload = json if json is not None else (params or {})
+        headers = self._headers(method, path, payload)
+        if not _auth:
+            headers.pop("Authorization", None)
 
-# 全局请求实例，所有用例共用
-api = RequestBase()
+        logger.info(f"--> {method.upper()} {path} | json={json} | params={params}")
+        resp = self.session.request(
+            method.upper(), url, headers=headers, json=json, params=params, timeout=self.timeout
+        )
+        logger.info(f"<-- {resp.status_code} | {resp.text[:400]}")
+
+        # token 失效自动重登并重试一次
+        if _auth and self.token:
+            try:
+                body = resp.json()
+            except ValueError:
+                body = {}
+            if body.get("code") == 401:
+                logger.warning("业务码 401，token 可能失效，重新登录后重试一次")
+                self.token = ""
+                self.login()
+                headers = self._headers(method, path, payload)
+                resp = self.session.request(
+                    method.upper(), url, headers=headers, json=json, params=params, timeout=self.timeout
+                )
+                logger.info(f"<-- 重试 {resp.status_code} | {resp.text[:400]}")
+        return resp
+
+    def get(self, path, **kwargs) -> Response:
+        return self.send("GET", path, **kwargs)
+
+    def post(self, path, **kwargs) -> Response:
+        return self.send("POST", path, **kwargs)
+
+    def put(self, path, **kwargs) -> Response:
+        return self.send("PUT", path, **kwargs)
+
+    def delete(self, path, **kwargs) -> Response:
+        return self.send("DELETE", path, **kwargs)
+
+    def close(self):
+        self.session.close()
+
+
+client = RequestHandler()

@@ -4,16 +4,44 @@ browser_collect:
   method: "POST"
   cases:
     - case_name: "正常添加网页收藏"
-      json: {"url":"https://www.baidu.com","title":"百度"}
-      expect: {"code":200}
+      json:
+        url: "https://www.baidu.com"
+        title: "百度"
+      expect:
+        code: 200
     - case_name: "URL为空，参数非法"
-      json: {"url":"","title":"空链接"}
-      expect: {"code":400}
+      json:
+        url: ""
+        title: "空链接"
+      expect:
+        code: 400
+        msg: "不能为空"
+    - case_name: "URL格式非法（缺少协议头）"
+      json:
+        url: "www.baidu.com"
+        title: "格式错误"
+      expect:
+        code: 400
+        msg: "格式"
+
 # 浏览器缓存清理接口
 browser_cache:
   uri: "/browser/cache/clear"
   method: "POST"
   cases:
     - case_name: "一键清空全部缓存"
-      json: {"cache_type":"all"}
-      expect: {"code":200}
+      json:
+        cache_type: "all"
+      expect:
+        code: 200
+    - case_name: "仅清理图片缓存"
+      json:
+        cache_type: "image"
+      expect:
+        code: 200
+    - case_name: "缓存类型非法，参数校验拦截"
+      json:
+        cache_type: "video"
+      expect:
+        code: 400
+        msg: "缓存类型"
